@@ -52,6 +52,14 @@ export default function Home() {
   const assistantMsgIdRef = useRef<string | null>(null)
 
   /* ------------------ WebSocket lifecycle ------------------ */
+  const getLastAssistantMessage = () => {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].type === "assistant" && messages[i].content.trim()) {
+      return messages[i].content
+    }
+  }
+  return null
+}
 
   useEffect(() => {
     const ws = new WebSocket("ws://localhost:8001/ws/master")
@@ -196,7 +204,8 @@ export default function Home() {
         {showAgentLogs && <AgentLogs />}
       </div>
 
-      <Footer />
+      <Footer getReportContent={getLastAssistantMessage} />
+
     </div>
   )
 }
