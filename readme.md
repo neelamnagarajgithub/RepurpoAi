@@ -366,7 +366,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ##  Authors
 
 - **Neelam Nagaraj** - [@neelamnagarajgithub](https://github.com/neelamnagarajgithub), Role: Web Development, API Integeration
-- **Shatakshi Palli** - [@Shatakshipalli](https://github.com/Shatakshi Palli), ROle: Agent Development
+- **Shatakshi Palli** - [@Shatakshipalli](https://github.com/ShatakshiPalli), Role: Agent Development
 
 ---
 
