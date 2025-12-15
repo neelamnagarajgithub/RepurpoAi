@@ -1,11 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Download, FileText, File, Trash2, Search } from "lucide-react"
 import Header from "@/components/header"
-import Footer from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import Foot from "@/components/foot"
 
 interface DownloadItem {
   id: string
@@ -14,39 +14,48 @@ interface DownloadItem {
   size: string
   timestamp: Date
   queryRelated: string
+  url: string
 }
 
 export default function DownloadsPage() {
   const [showAgentLogs, setShowAgentLogs] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const [downloads, setDownloads] = useState<DownloadItem[]>([])
 
-  // Mock downloads data
-  const [downloads] = useState<DownloadItem[]>([
-    {
-      id: "1",
-      name: "Aspirin_Market_Analysis_Report.pdf",
-      type: "PDF",
-      size: "2.4 MB",
-      timestamp: new Date("2025-01-15T10:35:00"),
-      queryRelated: "Identify innovation opportunities for Aspirin",
-    },
-    {
-      id: "2",
-      name: "Metformin_Clinical_Trials_Data.xlsx",
-      type: "Excel",
-      size: "1.8 MB",
-      timestamp: new Date("2025-01-14T15:50:00"),
-      queryRelated: "Analyze Metformin repurposing potential",
-    },
-    {
-      id: "3",
-      name: "GLP1_Patent_Landscape.pdf",
-      type: "PDF",
-      size: "3.1 MB",
-      timestamp: new Date("2025-01-13T09:25:00"),
-      queryRelated: "Patent landscape for GLP-1 agonists",
-    },
-  ])
+  useEffect(() => {
+    let mounted = true
+    ;(async () => {
+      try {
+        const token = localStorage.getItem("access_token")
+        const res = await fetch("http://localhost:8001/api/downloads?limit=100", {
+          headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        })
+        if (!res.ok) throw new Error("Failed to fetch downloads")
+        const data = await res.json()
+        if (mounted) {
+          // adapt backend response shape if needed
+          setDownloads(
+            data.map((d: any) => ({
+              id: String(d.id),
+              name: d.filename,
+              type: d.filename?.toLowerCase().endsWith(".pdf") ? "PDF" : "Excel",
+              size: d.size ?? "—",
+              timestamp: d.created_at ? new Date(d.created_at) : new Date(),
+              queryRelated: d.metadata?.queryRelated ?? "",
+              url: d.url ?? "",
+            })),
+          )
+        }
+      } catch (err) {
+        console.warn("Could not load downloads", err)
+      }
+    })()
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   const filteredDownloads = downloads.filter(
     (item) =>
@@ -122,7 +131,18 @@ export default function DownloadsPage() {
 
                       {/* Actions */}
                       <div className="flex items-center gap-2 shrink-0">
-                        <Button size="sm" className="bg-pharma-teal hover:bg-pharma-teal/90">
+                        <Button
+                          size="sm"
+                          className="bg-pharma-teal hover:bg-pharma-teal/90"
+                          onClick={() => {
+                            if (item.url && item.url.trim() !== "") {
+                              // open in new tab/window
+                              window.open(item.url, "_blank", "noopener,noreferrer")
+                            } else {
+                              alert("No download URL available for this file.")
+                            }
+                          }}
+                        >
                           <Download className="w-4 h-4 mr-2" />
                           Download
                         </Button>
@@ -139,7 +159,7 @@ export default function DownloadsPage() {
         </div>
       </div>
 
-      <Footer />
+      <Foot />
     </div>
   )
 }

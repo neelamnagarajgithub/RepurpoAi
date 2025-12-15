@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { SettingsIcon, User, Bell, Database, Shield, Palette } from "lucide-react"
 import Header from "@/components/header"
-import Footer from "@/components/footer"
+import Foot from "@/components/foot"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -227,7 +227,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      <Footer />
+      <Foot />
     </div>
   )
 }

@@ -29,11 +29,29 @@ export default function SignupPage() {
       return
     }
     setIsLoading(true)
-    // Simulate signup
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    setIsLoading(false)
-    // Redirect to login
-    window.location.href = "/login"
+    try {
+      const res = await fetch("http://localhost:8001/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.detail || "Signup failed")
+      }
+
+      // on success redirect to login
+      window.location.href = "/login"
+    } catch (err: any) {
+      console.error("Signup error", err)
+      alert("Signup failed: " + (err.message || err))
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (

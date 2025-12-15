@@ -22,6 +22,7 @@ export default function Footer({ getReportContent }: FooterProps) {
     setLoading(true)
 
     try {
+      // generate PDF via existing local route
       const res = await fetch("/api/report/pdf", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -33,16 +34,64 @@ export default function Footer({ getReportContent }: FooterProps) {
       if (!res.ok) throw new Error("PDF generation failed")
 
       const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
+      const filename = `RepurpoAI_Report_${Date.now()}.pdf`
 
-      const a = document.createElement("a")
-      a.href = url
-      a.download = "RepurpoAI_Report.pdf"
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
+      // Upload to server endpoint which will upload to Supabase using service role key
+      let uploadedUrl: string | null = null
+      try {
+        const formData = new FormData()
+        formData.append("file", new File([blob], filename, { type: "application/pdf" }))
+        formData.append("filename", filename)
 
-      URL.revokeObjectURL(url)
+        const upRes = await fetch("/api/upload-report", {
+          method: "POST",
+          body: formData,
+        })
+
+        if (upRes.ok) {
+          const upJson = await upRes.json()
+          uploadedUrl = upJson?.url ?? null
+        } else {
+          console.warn("Upload endpoint returned non-OK", upRes.status)
+          const txt = await upRes.text().catch(() => "")
+          console.warn("upload response:", txt)
+        }
+      } catch (upErr) {
+        console.warn("Upload to /api/upload-report failed:", upErr)
+      }
+
+      // Trigger client download (always do this regardless of upload result)
+      try {
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = url
+        a.download = filename
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        URL.revokeObjectURL(url)
+      } catch (dlErr) {
+        console.warn("Client download failed:", dlErr)
+      }
+
+      // Register download with backend (send the URL if available)
+      try {
+        const token = localStorage.getItem("access_token")
+        await fetch("http://localhost:8001/api/downloads", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({
+            filename,
+            url: uploadedUrl ?? "", // backend may require a URL; send empty string if not available
+            meta: { uploadedTo: uploadedUrl ? "supabase" : "local" },
+          }),
+        })
+      } catch (regErr) {
+        console.warn("Failed to register download with backend", regErr)
+      }
     } catch (err) {
       console.error(err)
       alert("Failed to generate report")

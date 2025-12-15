@@ -19,11 +19,32 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    // Simulate login
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-    setIsLoading(false)
-    // Redirect to home
-    window.location.href = "/"
+    try {
+      const params = new URLSearchParams()
+      params.append("username", email)
+      params.append("password", password)
+
+      const res = await fetch("http://localhost:8001/api/auth/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: params.toString(),
+      })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.detail || "Login failed")
+      }
+
+      const data = await res.json()
+      // store token for subsequent API calls
+      localStorage.setItem("access_token", data.access_token)
+      window.location.href = "/"
+    } catch (err) {
+      console.error("Login error", err)
+      alert("Login failed")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
